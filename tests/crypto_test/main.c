@@ -84,6 +84,57 @@ void test_ring_sig() {
     */
 }
 
+void test_mlsag() {
+    int ring_size = 3;
+    int vector_size = 3;
+    int index = 1;
+
+    matrix_public_key pubM;
+    pubM.num_keys = vector_size;
+    pubM.num_vectors = ring_size;
+    vector_public_key pubVs[vector_size];
+    pubM.pub_vectors = pubVs;
+
+    vector_secret_key secV;
+    secV.n = vector_size;
+    secV.sec_keys = malloc(sizeof(secret_key*)*vector_size);
+
+    vector_key_image imageV;
+    imageV.n = vector_size;
+    imageV.images = malloc(sizeof(key_image)*vector_size);
+
+    secret_key temp;
+    //For each vector
+    for (size_t i = 0; i < ring_size; i++ ) {
+        pubVs[i].n = vector_size;
+        pubVs[i].pub_keys = malloc(sizeof(public_key*)*vector_size);
+        //Each member in vector
+        for (size_t j = 0; j < vector_size; j++) {
+            if (i == index) {
+                generate_keys(pubVs[i].pub_keys[j], secV.sec_keys[i]);
+                generate_key_image(secV.sec_keys[i],pubVs[i].pub_keys[j],imageV.images[j]);
+            } else {
+                generate_keys(pubVs[i].pub_keys[j], &temp);
+            }
+
+        }
+    }
+
+    char msg[32];
+    for (size_t i = 0; i < 32; i++) {
+        msg[i] = 0x01;
+    }
+
+    mlsag_sig sig;
+    sig.s = malloc(sizeof(vector_ec_scalar*)*ring_size);
+    for (size_t i = 0; i < ring_size; i++) {
+        sig.s[i].scalars = (vector_ec_scalar*)malloc(sizeof(ec_scalar)*vector_size);
+        sig.s[i].n = vector_size;
+    }
+
+    generateMLSAG(msg,&pubM,&imageV,&secV,index,&sig);
+}
+
 void main() {
 
     FILE* fd = fopen("tests.txt", "r");
@@ -198,4 +249,5 @@ void main() {
     fclose(fd);
 
     test_ring_sig();
+    test_mlsag();
 }

@@ -168,7 +168,75 @@ void calc_c_hashV(char* c, char** L, char** R, int m, char* toHash, int prefix_s
     //int m = L.n;
     for (size_t i = 0; i < m; i++) {
         memcpy(toHash+prefix_size+(32*(2*i)), L[i], 32);
-        memcpy(toHash+prefix_size+(32*((2*i)+1)), R[i], 32);
+        memcpy(toHash+prefix_size+( 32*((2*i)+1) ), R[i], 32);
     }
     hash_to_scalar(toHash, prefix_size+(32*(m*2)), c);
+}
+
+/*Generate a Multilayered Linkable Spontaneous Anonymous Group Signature (MLSAG) 
+ * Prefix will always be 32 bytes
+ *
+ * Add checks that all vector sizes are the same
+ */
+void generateMLSAG(const char* prefix, const matrix_public_key* pubM, const vector_key_image* imageV, const vector_secret_key* secV, size_t index, mlsag_sig* sig) {
+    printf("Generating MLSAG...\n");
+    int vector_size = pubM->num_keys;   //m in MRL-0005
+    int ring_size = pubM->num_vectors;  //n in MRL-0005
+    vector_public_key* pub_vectors = pubM->pub_vectors;
+
+    ec_scalar s[ring_size][vector_size];
+    ec_scalar c;
+    //char L_curBytes[vector_size][32];
+    //char R_curBytes[vector_size][32];
+    char** L_curBytes;
+    char** R_curBytes;
+    L_curBytes = malloc(vector_size*sizeof(char*));
+    R_curBytes = malloc(vector_size*sizeof(char*));
+    for (size_t i = 0; i < vector_size; i++) {
+        L_curBytes[i] = malloc(32);
+        R_curBytes[i] = malloc(32);
+    }
+
+    int toHash_size = 32 + 64*vector_size;
+    char toHash[toHash_size];
+    memcpy(toHash, prefix, 32);
+
+    ge_dsmp image_pres[ring_size];
+    ge_p3 key_image_p3;
+    ge_dsmp image_pre;
+    for (size_t i = 0; i < vector_size; i++) {
+        ge_frombytes_vartime(&key_image_p3, imageV->images[i]);
+        ge_dsm_precomp(image_pres[i], &key_image_p3);
+    }
+
+    int ring_i = index;
+    public_key* cur_pub_vector = pub_vectors[ring_i].pub_keys;
+    for (size_t j = 0; j < vector_size; j++) {
+        random_scalar(s[ring_i][j]);
+        calc_LR_secret(L_curBytes[j], R_curBytes[j], s[ring_i][j], cur_pub_vector[j]);
+    }
+    calc_c_hashV(c, &L_curBytes, &R_curBytes, vector_size, toHash, 32);
+
+    ring_i = (ring_i + 1) % ring_size;
+    printf("c_%d: ", ring_i);
+    printHex(c, 32);
+
+    while (ring_i != index) {
+        for (size_t j = 0; j < vector_size; j++) {
+            random_scalar(s[ring_i][j]);
+            calc_LR(L_curBytes[j], R_curBytes[j], c, s[ring_i][j], cur_pub_vector[j], image_pres[ring_i]);
+        }
+
+        calc_c_hashV(c, L_curBytes, R_curBytes, vector_size, toHash, 32);
+
+        ring_i = (ring_i + 1) % ring_size;
+        if (ring_i == 0) {
+            memcpy(&sig->c1, &c, 32);
+        }
+        printf("c_%d: ", ring_i);
+        printHex(c, 32);
+    }
+    
+    
+    //Fill up rest of signature values
 }

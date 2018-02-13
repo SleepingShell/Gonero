@@ -20,12 +20,18 @@ typedef struct matrix_public_key {
     int num_keys;   //Number of keys per vector
 } matrix_public_key;
 
+
 typedef struct vector_ec_scalar {
     ec_scalar* scalars;
     int n;
 } vector_ec_scalar;
 
-typedef vector_ec_scalar vector_secret_key;
+//typedef vector_ec_scalar vector_secret_key;
+
+typedef struct vector_secret_key {
+    secret_key* sec_keys;
+    int n;
+} vector_secret_key;
 
 typedef struct vector_key_image {
     key_image* images;
