@@ -31,12 +31,12 @@ void calc_LR(char* L_curBytes, char* R_curBytes, ec_scalar* c_prev, ec_scalar s,
     ge_p3 R_cur;
     ge_p2 temp_p2;
     ge_frombytes_vartime(&pub_cur, pub);
-    ge_double_scalarmult_base_vartime(&temp_p2, c_prev, &pub_cur, s);
+    ge_double_scalarmult_base_vartime(&temp_p2, c_prev[0], &pub_cur, s);
     ge_tobytes(L_curBytes, &temp_p2);
 
     hash_to_ec(pub, 32, &pubhash_cur);
     ge_dsm_precomp(pubhash_pre, &pubhash_cur);
-    ge_double_scalarmult_precomp_vartime2_p3(&R_cur,s,pubhash_pre,c_prev,image_pre);
+    ge_double_scalarmult_precomp_vartime2_p3(&R_cur,s,pubhash_pre,c_prev[0],image_pre);
     ge_p3_tobytes(R_curBytes, &R_cur);
 }
 
@@ -49,8 +49,6 @@ void calc_LR_secret(char* L_curBytes, char* R_curBytes, ec_scalar s, public_key 
     hash_to_ec(pub, 32, &pubhash_cur);
     ge_scalarmult_p3(&R_cur, s, &pubhash_cur);
     ge_p3_tobytes(R_curBytes, &R_cur);
-    /*--------------------------*/
-
 }
 
 void generatellw(const char* msg, size_t msg_size, const vector_public_key* pubs, const key_image image, const secret_key sec, size_t index, ring_sig* sig) {
@@ -73,7 +71,7 @@ void generatellw(const char* msg, size_t msg_size, const vector_public_key* pubs
     char R_curBytes[32];
 
     int i = index;    
-    random_scalar(&s[i]);
+    random_scalar(s[i]);
     calc_LR_secret(L_curBytes, R_curBytes, s[i], pub_keys[i]);
     memcpy(toHash+(toHash_size-64), L_curBytes, 32);
     memcpy(toHash+(toHash_size-32), R_curBytes, 32);
@@ -236,7 +234,12 @@ void generateMLSAG(const char* prefix, const matrix_public_key* pubM, const vect
         printf("c_%d: ", ring_i);
         printHex(c, 32);
     }
-    
-    
+    for (size_t i = 0; i < ring_size; i++) {
+        for (size_t j = 0; j < vector_size; j++) {
+            memcpy(sig->s[i][j], s[i][j], 32);
+        }
+    }
+    sig->n=ring_size;
+    sig->m=vector_size;
     //Fill up rest of signature values
 }

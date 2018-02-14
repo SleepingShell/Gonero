@@ -40,7 +40,7 @@ void test_ring_sig() {
     public_key pubs[n];
     secret_key secs[n];
     for (size_t i = 0; i < n; i++) {
-        generate_keys(&pubs[i], &secs[i]);
+        generate_keys(pubs[i], secs[i]);
     }
 
     vector_public_key pubV;
@@ -51,7 +51,7 @@ void test_ring_sig() {
     size_t msg_size = 2;
 
     key_image image;
-    generate_key_image(&secs[index], &pubs[index], &image);
+    generate_key_image(secs[index], pubs[index], image);
 
     ring_sig sig;
     sig.s = malloc(sizeof(ec_scalar)*n);
@@ -114,7 +114,7 @@ void test_mlsag() {
                 generate_keys(pubVs[i].pub_keys[j], secV.sec_keys[i]);
                 generate_key_image(secV.sec_keys[i],pubVs[i].pub_keys[j],imageV.images[j]);
             } else {
-                generate_keys(pubVs[i].pub_keys[j], &temp);
+                generate_keys(pubVs[i].pub_keys[j], temp);
             }
 
         }
@@ -126,13 +126,21 @@ void test_mlsag() {
     }
 
     mlsag_sig sig;
-    sig.s = malloc(sizeof(vector_ec_scalar*)*ring_size);
+    //sig.s = malloc(sizeof(vector_ec_scalar*)*ring_size);
+    sig.s = malloc(ring_size*sizeof(ec_scalar*));
     for (size_t i = 0; i < ring_size; i++) {
-        sig.s[i].scalars = (vector_ec_scalar*)malloc(sizeof(ec_scalar)*vector_size);
-        sig.s[i].n = vector_size;
+        //sig.s[i].scalars = (vector_ec_scalar*)malloc(sizeof(ec_scalar)*vector_size);
+        //sig.s[i].n = vector_size;
+        sig.s[i] = malloc(vector_size*sizeof(ec_scalar));
+    }
+
+    sig.imageV.images = malloc(sizeof(key_image)*vector_size);
+    for (size_t i = 0; i < vector_size; i++) {
+        memcpy(sig.imageV.images[i], imageV.images[i],32);
     }
 
     generateMLSAG(msg,&pubM,&imageV,&secV,index,&sig);
+    printHex(sig.c1, 32);
 }
 
 void main() {
@@ -179,7 +187,7 @@ void main() {
                 res_expected = false;
             }
 
-            res = secret_to_public(&pub, &sk);
+            res = secret_to_public(pub, sk);
             
             if (res == res_expected && isByteArraysEqual(pub,pub_expected,32)) {
                 //printf("%d passed\n", lineNo);
@@ -205,7 +213,7 @@ void main() {
             hexStrToBytes(expected, out_expectedBytes, 64);
             //ge_frombytes_vartime(&out_expected, out_expectedBytes);
 
-            hash_to_ec(&in, 32, &out);
+            hash_to_ec(in, 32, &out);
 
             ge_p3_tobytes(outBytes, &out);
 
@@ -235,7 +243,7 @@ void main() {
             hexStrToBytes(expectedString, expected, 64);
 
             key_image real;
-            generate_key_image(&sec, &pub, &real);
+            generate_key_image(sec, pub, real);
 
             if ( !isByteArraysEqual(real, expected, 32) ) {
                 printf("%d Failed\n", lineNo);

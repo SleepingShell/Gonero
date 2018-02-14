@@ -12,8 +12,8 @@ typedef struct ring_sig {
 typedef struct mlsag_sig {
     vector_key_image imageV;
     ec_scalar c1;
-    vector_ec_scalar* s;
-    int n, m;       //n is the ring size for m vectors
+    ec_scalar** s;
+    int n, m;       //n is the size of the ring with each member having a vector m big
 } mlsag_sig;
 
 //Maybe signatures should be programmed in go

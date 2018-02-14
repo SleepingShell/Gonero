@@ -4,7 +4,7 @@
 #include "../random.h"
 #include "../crypto_math/crypto-ops.h"
 
-void random_scalar(ec_scalar* dest) {
+void random_scalar(ec_scalar dest) {
     unsigned char temp[64];
     gen_random_bytes(32, temp);
     sc_reduce(temp);
@@ -29,18 +29,18 @@ void hash_to_ec(void* in, size_t size, ge_p3* out) {
    
 }
 
-void hash_to_ec_point(void* in, size_t size, ec_point* out) {
+void hash_to_ec_point(void* in, size_t size, ec_point out) {
     ge_p3 temp;
     hash_to_ec(in, size, &temp);
     ge_p3_tobytes(out, &temp);
 }
 
-void hash_to_scalar(void* in, size_t size, ec_scalar* out) {
+void hash_to_scalar(void* in, size_t size, ec_scalar out) {
     cn_fast_hash(in, size, out);
     sc_reduce32(out);
 }
 
-void generate_key_image(secret_key* x, public_key* pub, key_image* image) {
+void generate_key_image(secret_key x, public_key pub, key_image image) {
     ge_p3 hash;
     ge_p2 res;
     hash_to_ec(pub, 32, &hash);
