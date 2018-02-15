@@ -23,7 +23,7 @@ bool isByteArraysEqual(char* s1, char* s2, int n) {
 /* Calculate the L and R values and put them in their byte arrays
  * Used in LWW and MLSAG
  */
-void calc_LR(char* L_curBytes, char* R_curBytes, ec_scalar* c_prev, ec_scalar s, public_key pub, ge_dsmp image_pre) {
+void calc_LR(char* L_curBytes, char* R_curBytes, ec_scalar c_prev, ec_scalar s, public_key pub, ge_dsmp image_pre) {
     ge_p3 pub_cur;
     ge_p3 pubhash_cur;
     ge_dsmp pubhash_pre;
@@ -31,12 +31,12 @@ void calc_LR(char* L_curBytes, char* R_curBytes, ec_scalar* c_prev, ec_scalar s,
     ge_p3 R_cur;
     ge_p2 temp_p2;
     ge_frombytes_vartime(&pub_cur, pub);
-    ge_double_scalarmult_base_vartime(&temp_p2, c_prev[0], &pub_cur, s);
+    ge_double_scalarmult_base_vartime(&temp_p2, c_prev, &pub_cur, s);
     ge_tobytes(L_curBytes, &temp_p2);
 
     hash_to_ec(pub, 32, &pubhash_cur);
     ge_dsm_precomp(pubhash_pre, &pubhash_cur);
-    ge_double_scalarmult_precomp_vartime2_p3(&R_cur,s,pubhash_pre,c_prev[0],image_pre);
+    ge_double_scalarmult_precomp_vartime2_p3(&R_cur,s,pubhash_pre,c_prev,image_pre);
     ge_p3_tobytes(R_curBytes, &R_cur);
 }
 
@@ -87,7 +87,7 @@ void generatellw(const char* msg, size_t msg_size, const vector_public_key* pubs
     while (i != index) {
         random_scalar(s[i]);
 
-        calc_LR(L_curBytes, R_curBytes, &c, s[i], pub_keys[i], image_pre);
+        calc_LR(L_curBytes, R_curBytes, c, s[i], pub_keys[i], image_pre);
         memcpy(toHash+(toHash_size-64), L_curBytes, 32);
         memcpy(toHash+(toHash_size-32), R_curBytes, 32);
         hash_to_scalar(toHash, toHash_size, c);
@@ -106,15 +106,6 @@ void generatellw(const char* msg, size_t msg_size, const vector_public_key* pubs
         memcpy(sig->s[i], s[i], 32);
         memcpy(sig->I, image, 32);
     }
-
-    printf("s[0]: ");
-    printHex(s[0], 32);
-    printf("pub[0]: ");
-    printHex(pub_keys[0],32);
-    printf("key_image: ");
-    printHex(image, 32);
-
-    printf("-----end generatellw2------\n");
 }
 
 bool verifyllw(const char* msg, size_t msg_size, vector_public_key* pubs, ring_sig* sig) {
@@ -146,7 +137,7 @@ bool verifyllw(const char* msg, size_t msg_size, vector_public_key* pubs, ring_s
     int i = 0;
     while (i < n) {
         //calc_c_value(&c_cur,s[i],pub_keys[i],image_pre,toHash,toHash_size);
-        calc_LR(L_curBytes, R_curBytes, &c_cur, s[i], pub_keys[i], image_pre);
+        calc_LR(L_curBytes, R_curBytes, c_cur, s[i], pub_keys[i], image_pre);
         memcpy(toHash+(toHash_size-64), L_curBytes, 32);
         memcpy(toHash+(toHash_size-32), R_curBytes, 32);
         hash_to_scalar(toHash, toHash_size, c_cur);
@@ -180,12 +171,10 @@ void generateMLSAG(const char* prefix, const matrix_public_key* pubM, const vect
     printf("Generating MLSAG...\n");
     int vector_size = pubM->num_keys;   //m in MRL-0005
     int ring_size = pubM->num_vectors;  //n in MRL-0005
-    vector_public_key* pub_vectors = pubM->pub_vectors;
+    public_key** pub_vectors = pubM->pub_vectors;
 
-    ec_scalar s[ring_size][vector_size];
+    ec_scalar** s = sig->s;
     ec_scalar c;
-    //char L_curBytes[vector_size][32];
-    //char R_curBytes[vector_size][32];
     char** L_curBytes;
     char** R_curBytes;
     L_curBytes = malloc(vector_size*sizeof(char*));
@@ -208,21 +197,25 @@ void generateMLSAG(const char* prefix, const matrix_public_key* pubM, const vect
     }
 
     int ring_i = index;
-    public_key* cur_pub_vector = pub_vectors[ring_i].pub_keys;
+    public_key* cur_pub_vector = pub_vectors[ring_i];
     for (size_t j = 0; j < vector_size; j++) {
         random_scalar(s[ring_i][j]);
         calc_LR_secret(L_curBytes[j], R_curBytes[j], s[ring_i][j], cur_pub_vector[j]);
     }
-    calc_c_hashV(c, &L_curBytes, &R_curBytes, vector_size, toHash, 32);
+    calc_c_hashV(c, L_curBytes, R_curBytes, vector_size, toHash, 32);
 
     ring_i = (ring_i + 1) % ring_size;
+    if (ring_i == 0) {
+            memcpy(&sig->c1, &c, 32);
+    }
     printf("c_%d: ", ring_i);
     printHex(c, 32);
 
     while (ring_i != index) {
+        cur_pub_vector = pub_vectors[ring_i];
         for (size_t j = 0; j < vector_size; j++) {
             random_scalar(s[ring_i][j]);
-            calc_LR(L_curBytes[j], R_curBytes[j], c, s[ring_i][j], cur_pub_vector[j], image_pres[ring_i]);
+            calc_LR(L_curBytes[j], R_curBytes[j], c, s[ring_i][j], cur_pub_vector[j], image_pres[j]);
         }
 
         calc_c_hashV(c, L_curBytes, R_curBytes, vector_size, toHash, 32);
@@ -234,12 +227,68 @@ void generateMLSAG(const char* prefix, const matrix_public_key* pubM, const vect
         printf("c_%d: ", ring_i);
         printHex(c, 32);
     }
-    for (size_t i = 0; i < ring_size; i++) {
-        for (size_t j = 0; j < vector_size; j++) {
-            memcpy(sig->s[i][j], s[i][j], 32);
-        }
+
+    for (size_t j = 0; j < vector_size; j++) {
+        sc_mulsub(s[index][j], c, secV->sec_keys[j],s[index][j]);
+
     }
     sig->n=ring_size;
     sig->m=vector_size;
-    //Fill up rest of signature values
+}
+
+bool verifyMLSAG(const char* prefix, const matrix_public_key* pubM, mlsag_sig* sig) {
+    printf("Verifying MLSAG...\n");
+
+    int vector_size = sig->m;   //m in MRL-0005
+    int ring_size = sig->n;  //n in MRL-0005
+    //vector_public_key* pub_vectors = pubM->pub_vectors;
+    public_key** pub_vectors = pubM->pub_vectors;
+
+    vector_key_image imageV = sig->imageV;
+
+    //ec_scalar s[ring_size][vector_size];
+    ec_scalar** s = sig->s;
+    ec_scalar c;
+
+    memcpy(c, sig->c1, 32);
+
+    char** L_curBytes;
+    char** R_curBytes;
+    L_curBytes = malloc(vector_size*sizeof(char*));
+    R_curBytes = malloc(vector_size*sizeof(char*));
+    for (size_t i = 0; i < vector_size; i++) {
+        L_curBytes[i] = malloc(32);
+        R_curBytes[i] = malloc(32);
+    }
+
+    int toHash_size = 32 + 64*vector_size;
+    char toHash[toHash_size];
+    memcpy(toHash, prefix, 32);
+
+    ge_dsmp image_pres[ring_size];
+    ge_p3 key_image_p3;
+    ge_dsmp image_pre;
+    for (size_t i = 0; i < vector_size; i++) {
+        ge_frombytes_vartime(&key_image_p3, imageV.images[i]);
+        ge_dsm_precomp(image_pres[i], &key_image_p3);
+    }
+
+    int ring_i = 0;
+    public_key* cur_pub_vector;
+
+    printf("c_%d: ", ring_i);
+    printHex(c, 32);
+    while (ring_i < ring_size) {
+        cur_pub_vector = pub_vectors[ring_i];
+        for (size_t j = 0; j < vector_size; j++) {
+            calc_LR(L_curBytes[j], R_curBytes[j], c, s[ring_i][j], cur_pub_vector[j], image_pres[j]);
+        }
+
+        calc_c_hashV(c, L_curBytes, R_curBytes, vector_size, toHash, 32);
+
+        ring_i = (ring_i + 1);
+        printf("c_%d: ", ring_i);
+        printHex(c, 32);        
+    }
+    return isByteArraysEqual(sig->c1, c, 32);
 }

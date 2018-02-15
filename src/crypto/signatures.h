@@ -20,3 +20,4 @@ typedef struct mlsag_sig {
 void generatellw(const char* msg, size_t msg_size, const vector_public_key* pubs, const key_image image, const secret_key sec, size_t index, ring_sig* sig);
 bool verifyllw(const char* msg, size_t msg_size, vector_public_key* pubs, ring_sig* sig);
 void generateMLSAG(const char* prefix, const matrix_public_key* pubM, const vector_key_image* imageV, const vector_secret_key* secV, size_t index, mlsag_sig* sig);
+bool verifyMLSAG(const char* prefix, const matrix_public_key* pubM, mlsag_sig* sig);

@@ -92,12 +92,19 @@ void test_mlsag() {
     matrix_public_key pubM;
     pubM.num_keys = vector_size;
     pubM.num_vectors = ring_size;
-    vector_public_key pubVs[vector_size];
+    //vector_public_key pubVs[vector_size];
+    //pubM.pub_vectors = pubVs;
+
+    public_key** pubVs;
+    pubVs = malloc(ring_size*sizeof(public_key*));
+    for (size_t i=0; i < ring_size; i++) {
+        pubVs[i] = malloc(vector_size*sizeof(public_key));
+    }
     pubM.pub_vectors = pubVs;
 
     vector_secret_key secV;
     secV.n = vector_size;
-    secV.sec_keys = malloc(sizeof(secret_key*)*vector_size);
+    secV.sec_keys = malloc(sizeof(secret_key)*vector_size);
 
     vector_key_image imageV;
     imageV.n = vector_size;
@@ -106,15 +113,13 @@ void test_mlsag() {
     secret_key temp;
     //For each vector
     for (size_t i = 0; i < ring_size; i++ ) {
-        pubVs[i].n = vector_size;
-        pubVs[i].pub_keys = malloc(sizeof(public_key*)*vector_size);
         //Each member in vector
         for (size_t j = 0; j < vector_size; j++) {
             if (i == index) {
-                generate_keys(pubVs[i].pub_keys[j], secV.sec_keys[i]);
-                generate_key_image(secV.sec_keys[i],pubVs[i].pub_keys[j],imageV.images[j]);
+                generate_keys(pubVs[i][j], secV.sec_keys[j]);
+                generate_key_image(secV.sec_keys[j],pubVs[i][j],imageV.images[j]);
             } else {
-                generate_keys(pubVs[i].pub_keys[j], temp);
+                generate_keys(pubVs[i][j],temp);
             }
 
         }
@@ -141,6 +146,8 @@ void test_mlsag() {
 
     generateMLSAG(msg,&pubM,&imageV,&secV,index,&sig);
     printHex(sig.c1, 32);
+    bool res = verifyMLSAG(msg, &pubM, &sig);
+    printf("Verification result: %s\n", res ? "true" : "false");
 }
 
 void main() {
