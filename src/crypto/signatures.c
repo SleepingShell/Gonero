@@ -40,7 +40,8 @@ void calc_LR(char* L_curBytes, char* R_curBytes, ec_scalar c_prev, ec_scalar s, 
     ge_p3_tobytes(R_curBytes, &R_cur);
 }
 
-/*----------Calculate values for secret index----------*/
+/* Calculate LR values for secret index
+ */
 void calc_LR_secret(char* L_curBytes, char* R_curBytes, ec_scalar s, public_key pub) {
     ge_p3 pubhash_cur;
     ge_p3 L_cur, R_cur;
@@ -51,6 +52,10 @@ void calc_LR_secret(char* L_curBytes, char* R_curBytes, ec_scalar s, public_key 
     ge_p3_tobytes(R_curBytes, &R_cur);
 }
 
+/* Generate a LWW signature as described in MRL-0005 Section 2.1
+ * Generated on an arbitrary sized message, msg
+ * Index is the index of the pubs vector in which sec is the corresponding secret key
+ */
 void generatellw(const char* msg, size_t msg_size, const vector_public_key* pubs, const key_image image, const secret_key sec, size_t index, ring_sig* sig) {
     int n = pubs->n;
     public_key* pub_keys = pubs->pub_keys;
@@ -108,6 +113,9 @@ void generatellw(const char* msg, size_t msg_size, const vector_public_key* pubs
     }
 }
 
+/* Verify a LLW signatures as described in MRL-0005 Section 2.1
+ * Given a set of public keys and the corresponding msg and signature
+ */
 bool verifyllw(const char* msg, size_t msg_size, vector_public_key* pubs, ring_sig* sig) {
     printf("----Verifying-----\n");
     int n = pubs->n;
@@ -188,6 +196,7 @@ void generateMLSAG(const char* prefix, const matrix_public_key* pubM, const vect
     char toHash[toHash_size];
     memcpy(toHash, prefix, 32);
 
+    //Generate precomputed ge_dsmp values for key images as we will need these later
     ge_dsmp image_pres[vector_size];
     ge_p3 key_image_p3;
     ge_dsmp image_pre;
@@ -196,6 +205,7 @@ void generateMLSAG(const char* prefix, const matrix_public_key* pubM, const vect
         ge_dsm_precomp(image_pres[j], &key_image_p3);
     }
 
+    //Generate the c value for index+1 (Section 2.2 MRL-0005)
     int ring_i = index;
     public_key* cur_pub_vector = pub_vectors[ring_i];
     for (size_t j = 0; j < vector_size; j++) {
@@ -241,12 +251,10 @@ bool verifyMLSAG(const char* prefix, const matrix_public_key* pubM, mlsag_sig* s
 
     int vector_size = sig->m;   //m in MRL-0005
     int ring_size = sig->n;  //n in MRL-0005
-    //vector_public_key* pub_vectors = pubM->pub_vectors;
     public_key** pub_vectors = pubM->pub_vectors;
 
     vector_key_image imageV = sig->imageV;
 
-    //ec_scalar s[ring_size][vector_size];
     ec_scalar** s = sig->s;
     ec_scalar c;
 

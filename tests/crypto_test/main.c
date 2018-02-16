@@ -85,7 +85,7 @@ void test_ring_sig() {
 }
 
 void test_mlsag() {
-    int ring_size = 1000;
+    int ring_size = 500;
     int vector_size = 10;
     int index = 50;
 
