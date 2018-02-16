@@ -169,8 +169,8 @@ void calc_c_hashV(char* c, char** L, char** R, int m, char* toHash, int prefix_s
  */
 void generateMLSAG(const char* prefix, const matrix_public_key* pubM, const vector_key_image* imageV, const vector_secret_key* secV, size_t index, mlsag_sig* sig) {
     printf("Generating MLSAG...\n");
-    int vector_size = pubM->num_keys;   //m in MRL-0005
-    int ring_size = pubM->num_vectors;  //n in MRL-0005
+    int vector_size = pubM->vector_size;   //m in MRL-0005
+    int ring_size = pubM->ring_size;  //n in MRL-0005
     public_key** pub_vectors = pubM->pub_vectors;
 
     ec_scalar** s = sig->s;
@@ -188,12 +188,12 @@ void generateMLSAG(const char* prefix, const matrix_public_key* pubM, const vect
     char toHash[toHash_size];
     memcpy(toHash, prefix, 32);
 
-    ge_dsmp image_pres[ring_size];
+    ge_dsmp image_pres[vector_size];
     ge_p3 key_image_p3;
     ge_dsmp image_pre;
-    for (size_t i = 0; i < vector_size; i++) {
-        ge_frombytes_vartime(&key_image_p3, imageV->images[i]);
-        ge_dsm_precomp(image_pres[i], &key_image_p3);
+    for (size_t j = 0; j < vector_size; j++) {
+        ge_frombytes_vartime(&key_image_p3, imageV->images[j]);
+        ge_dsm_precomp(image_pres[j], &key_image_p3);
     }
 
     int ring_i = index;
@@ -265,7 +265,7 @@ bool verifyMLSAG(const char* prefix, const matrix_public_key* pubM, mlsag_sig* s
     char toHash[toHash_size];
     memcpy(toHash, prefix, 32);
 
-    ge_dsmp image_pres[ring_size];
+    ge_dsmp image_pres[vector_size];
     ge_p3 key_image_p3;
     ge_dsmp image_pre;
     for (size_t i = 0; i < vector_size; i++) {

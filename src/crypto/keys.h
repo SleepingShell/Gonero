@@ -20,8 +20,8 @@ typedef struct vector_public_key {
 typedef struct matrix_public_key {
     //vector_public_key* pub_vectors;
     public_key** pub_vectors;
-    int num_vectors;
-    int num_keys;   //Number of keys per vector
+    int ring_size;      //n
+    int vector_size;   //Number of keys per ring (m)
 } matrix_public_key;
 
 

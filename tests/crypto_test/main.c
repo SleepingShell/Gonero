@@ -85,15 +85,13 @@ void test_ring_sig() {
 }
 
 void test_mlsag() {
-    int ring_size = 3;
-    int vector_size = 3;
-    int index = 1;
+    int ring_size = 1000;
+    int vector_size = 10;
+    int index = 50;
 
     matrix_public_key pubM;
-    pubM.num_keys = vector_size;
-    pubM.num_vectors = ring_size;
-    //vector_public_key pubVs[vector_size];
-    //pubM.pub_vectors = pubVs;
+    pubM.vector_size = vector_size;
+    pubM.ring_size = ring_size;
 
     public_key** pubVs;
     pubVs = malloc(ring_size*sizeof(public_key*));
