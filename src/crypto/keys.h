@@ -56,4 +56,17 @@ void generate_keys(public_key pub, secret_key sk);
 bool secret_to_public(public_key pub, secret_key sk);
 bool check_key(const public_key pub);
 
+//out = aG
+void scalarMultBase(ec_scalar out, ec_scalar a);
+
+//TODO: Handle errors on ge_frombytes_vartime
+//out = A + B
+void addKeys(ec_point out, ec_point A, ec_point B);
+
+//out = aG + B
+void addKeys_multBase(ec_point out, ec_scalar a, ec_point B);
+
+//out = aG + bB
+void addKeys_double_multBase(ec_point out, ec_scalar a, ec_scalar b, ec_point B);
+
 #endif

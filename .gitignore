@@ -2,6 +2,7 @@
 *.swo
 
 .vscode
+notes.txt
 
 # Compiled source #
 ###################

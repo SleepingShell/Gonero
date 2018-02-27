@@ -1,24 +1,7 @@
 #include "signatures.h"
 #include "./hash/hash.h"
 #include "./crypto_math/crypto-ops.h"
-
-void printHex(unsigned char* s, int n) {
-    printf("0x");
-    for (int i = 0; i < n; i++) {
-        printf("%x", s[i]);
-    }
-    printf("\n");
-}
-
-//Constant time byte array check, should maybe move to utils
-bool isByteArraysEqual(char* s1, char* s2, int n) {
-    int result = 0;
-    for (size_t i = 0; i < n; i++) {
-        result |= (s1[i] ^ s2[i]);
-    }
-
-    return result == 0;
-}
+#include "../utils/utils.h"
 
 /* Calculate the L and R values and put them in their byte arrays
  * Used in LWW and MLSAG

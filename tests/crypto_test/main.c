@@ -9,29 +9,11 @@
 #include "../../src/crypto/keys.h"
 #include "../../src/crypto/hash/hash.h"
 #include "../../src/crypto/signatures.h"
+#include "../../src/crypto/rangeproofs.h"
+#include "../../src/utils/utils.h"
 
 //Longest line in tests.txt is 49569
 #define MAX_LINE_LENGTH 49800
-
-/*
-void printHex(unsigned char* s, int n) {
-    printf("0x");
-    for (int i = 0; i < n; i++) {
-        printf("%x", s[i]);
-    }
-    printf("\n");
-}
-*/
-
-//Read n/2 bytes into dest from a string s n characters long
-void hexStrToBytes(char* s, unsigned char* dest, int n) {
-    char* pos = s;
-    unsigned int t;
-    for (size_t i = 0; i < n / 2; i++) {
-        sscanf((s + 2*i), "%2x", &t);
-        dest[i] = t;
-    }
-}
 
 void test_ring_sig() {
     
@@ -85,9 +67,9 @@ void test_ring_sig() {
 }
 
 void test_mlsag() {
-    int ring_size = 500;
+    int ring_size = 20;
     int vector_size = 10;
-    int index = 50;
+    int index = 5;
 
     matrix_public_key pubM;
     pubM.vector_size = vector_size;
@@ -148,7 +130,7 @@ void test_mlsag() {
     printf("Verification result: %s\n", res ? "true" : "false");
 }
 
-void main() {
+int main() {
 
     FILE* fd = fopen("tests.txt", "r");
     if (!fd) {
@@ -263,4 +245,6 @@ void main() {
 
     test_ring_sig();
     test_mlsag();
+
+    return 0;
 }
