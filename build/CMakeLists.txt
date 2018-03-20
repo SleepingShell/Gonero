@@ -17,9 +17,13 @@ add_library(
     ../src/crypto/hash/keccak.c
     ../src/crypto/signatures.h
     ../src/crypto/signatures.c
+    ../src/crypto/stealth.h
+    ../src/crypto/stealth.c
     ../src/crypto/crypto_math/crypto-ops-data.c
     ../src/crypto/crypto_math/crypto-ops.h
     ../src/crypto/crypto_math/crypto-ops.c
+    ../src/utils/utils.h
+    ../src/utils/utils.c
 )
 
 set_target_properties(monerocrypto PROPERTIES 

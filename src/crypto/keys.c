@@ -21,7 +21,6 @@ static inline void random_scalar(ec_scalar res) {
 
 void generate_keys(public_key pub, secret_key sk) {
     random_scalar(sk);
-    //sc_reduce(sk);              //I don't think this is needed...
     secret_to_public(pub,sk);
 }
 
@@ -71,5 +70,26 @@ void addKeys_double_multBase(ec_point out, ec_scalar a, ec_scalar b, ec_point B)
     ge_p2 res;
     ge_frombytes_vartime(&B3, B);
     ge_double_scalarmult_base_vartime(&res,b,&B3,a);
+    ge_tobytes(out, &res);
+}
+
+void mul8(ec_point out, ec_point in) {
+    ge_p2 temp;
+    ge_p1p1 res;
+
+    ge_fromfe_frombytes_vartime(&temp, in);
+    ge_mul8(&res, &temp);
+    ge_p1p1_to_p2(&temp, &res);
+    ge_tobytes(out, &temp);
+}
+
+void scalarMult8(ec_point out, ec_scalar a, ec_point B) {
+    ge_p3 pointB;
+    ge_p2 res;
+    ge_p1p1 res8;
+    ge_frombytes_vartime(&pointB, B);
+    ge_scalarmult(&res, a, &pointB);
+    ge_mul8(&res8,&res);
+    ge_p1p1_to_p2(&res,&res8);
     ge_tobytes(out, &res);
 }

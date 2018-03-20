@@ -12,7 +12,7 @@ void random_scalar(ec_scalar dest) {
 }
 
 //Only the first 32 bytes are used from the 200-byte output
-void cn_fast_hash(void* data, size_t size, char* hash) {
+void cn_fast_hash(void* data, size_t size, unsigned char* hash) {
     uint8_t temp[200];
     keccak1600(data, size, temp);
     memcpy(hash, temp, 32);
@@ -46,4 +46,8 @@ void generate_key_image(secret_key x, public_key pub, key_image image) {
     hash_to_ec(pub, 32, &hash);
     ge_scalarmult(&res, x, &hash);
     ge_tobytes(image, &res);
+}
+
+void hash_no_reduce(void* in, size_t size, ec_scalar out) {
+    cn_fast_hash(in, size, out);;
 }

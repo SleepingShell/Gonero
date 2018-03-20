@@ -27,7 +27,8 @@ void hash_to_ec(void* in, size_t size, ge_p3* out);
 //Outputs to a point (32 byte array)
 void hash_to_ec_point(void* in, size_t size, ec_point out);
 void hash_to_scalar(void* in, size_t size, ec_scalar out);
-void cn_fast_hash(void* data, size_t size, char* hash);
+void cn_fast_hash(void* data, size_t size, unsigned char* hash);
+void hash_no_reduce(void* in, size_t size, ec_scalar out);
 
 void generate_key_image(secret_key x, public_key pub, key_image image);
 

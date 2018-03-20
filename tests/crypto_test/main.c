@@ -150,7 +150,31 @@ int main() {
         lineNo++;
         cur = strtok(buffer, " ");
         
-        if (strcmp("secret_key_to_public_key", cur) == 0) {
+        if (strcmp("hash_to_scalar", cur) == 0) {
+            char resultString[65];
+            int inputLen;
+            ec_scalar input, expected, result;
+
+            cur = strtok(NULL, " ");
+            inputLen = strlen(cur)/2;
+            char inputString[inputLen*2];
+            strcpy(inputString, cur);
+            hexStrToBytes(inputString, input, inputLen*2);
+
+            cur = strtok(NULL, " ");
+            strcpy(resultString, cur);
+            hexStrToBytes(resultString, expected, 64);
+
+            //printHex(input, inputLen);
+
+            hash_to_scalar(input, inputLen, result);
+            if (isByteArraysEqual(result,expected, 32)) {
+                //printf("%d passed\n", lineNo);
+            } else {
+                printf("%d Failed\n", lineNo);
+            }
+
+        } else if (strcmp("secret_key_to_public_key", cur) == 0) {
             char secString[65];
             char resultString[6];
             char pubString[65];
@@ -239,12 +263,21 @@ int main() {
     }
 
     printf("********Finished tests********\n");
+    secret_key sk;
+    public_key pk;
+    ec_scalar out;
+    hexStrToBytes("570c22f3bea11fda89178a16fa3f6e4f04cd1db31d1b482325fc4571cffcc00b", sk, 64);
+    hash_to_scalar(sk, 32, out);
+    printHex(sk, 32);
+    printHex(out, 32);
+    secret_to_public(pk,sk);
+    printHex(pk, 32);
 
     free(buffer);
     fclose(fd);
 
-    test_ring_sig();
-    test_mlsag();
+    //test_ring_sig();
+    //test_mlsag();
 
     return 0;
 }

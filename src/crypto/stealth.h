@@ -10,8 +10,8 @@ typedef struct stealth_address {
     ec_point pub;   //One-time destination public key
 } stealth_address;
 
-void generateStealth(ec_point A, ec_scalar B, stealth_address* addr);
-bool isStealthMine(ec_point pub, ec_point R, ec_scalar a, ec_point B);
-void getStealthKey(ec_point* priv, ec_point R, ec_scalar a, ec_scalar b);
+void generateStealth(public_key A, public_key B, stealth_address* addr, bool rand, size_t output_index);
+bool isStealthMine(public_key pub, public_key R, secret_key a, public_key B, size_t output_index);
+void getStealthKey(secret_key priv, public_key R, secret_key a, secret_key b, size_t output_index);
 
 #endif

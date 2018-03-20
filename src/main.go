@@ -2,30 +2,30 @@ package main
 
 /*
 #cgo LDFLAGS: -L ../lib -lmonerocrypto
-#include "../include/monerocrypto.h"
+#include "./crypto/keys.h"
 */
 import (
 	"C"
 )
 import (
 	"fmt"
-	"unsafe"
-	//"./crypto"
+	"log"
 )
 
-/*
-func testIt() {
-	signature.testHash()
-}*/
-
 func main() {
-	var sk C.secret_key
-	var pk C.public_key
 
-	C.generate_keys(&pk, &sk)
-	fmt.Printf("%x\n", sk)
+	keys := GenKeys()
+	fmt.Printf("sk spend: %x\n", keys.skSpend)
+	fmt.Printf("pk spend: %x\n", keys.pkSpend)
+	fmt.Printf("sk view: %x\n", keys.skView)
+	fmt.Printf("pk view: %x\n", keys.pkView)
+	fmt.Printf("address: %s\n", keys.address)
+	fmt.Printf("%s\n", SecretToMnemonic(keys.skSpend))
 
-	var skb [32]byte
-	copy(skb[:], (*(*[32]byte)(unsafe.Pointer(&sk)))[:32:32])
-	fmt.Printf("%x\n", skb)
+	stealthTest()
+	spend, view, err := DecodeAddress(keys.address)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	fmt.Printf("spend: %x\nview: %x\n", spend, view)
 }

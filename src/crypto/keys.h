@@ -69,4 +69,10 @@ void addKeys_multBase(ec_point out, ec_scalar a, ec_point B);
 //out = aG + bB
 void addKeys_double_multBase(ec_point out, ec_scalar a, ec_scalar b, ec_point B);
 
+//out = 8*in
+void mul8(ec_point out, ec_point in);
+
+//out = 8*a*B
+void scalarMult8(ec_point out, ec_scalar a, ec_point B);
+
 #endif

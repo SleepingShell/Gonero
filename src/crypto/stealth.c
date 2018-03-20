@@ -4,19 +4,37 @@
 #include "./hash/hash.h"
 #include "../utils/utils.h"
 
+
+/* Hashes the key combined with the variable-encoded output_index
+ *  key is either rA or Ra in the context of cryptonote keys
+ */
+void derivation_to_scalar(ec_scalar out, ec_point key, size_t output_index) {
+    int ind_size = (sizeof(size_t) * 8 + 6) / 7;
+    char toHash[32+ind_size];
+    memcpy(toHash,key,32);
+    size_t size;
+    size = write_varint(toHash+32, output_index);
+    hash_to_scalar(toHash, 32+size, out);
+} 
+
 /* Constructs a one-time public key for destination address (A,B)
  * 
- *  1. Choose a random r in [1, l - 1]  (Only 32-bit in current implementation)
+ *  if rand is true, then we are not passing the r to the function
+ *  if rand is false, we are using the r value already in addr->r
+ * 
+ *  1. Choose a random r in [1, l - 1]
  *  2. Compute the one time public key: P = H(rA)G + B
  *  3. Calculate R = rG, which the receiver uses to recover the corresponding private keys
  */ 
-void generateStealth(ec_point A, ec_scalar B, stealth_address* addr) {
+void generateStealth(public_key A, public_key B, stealth_address* addr, bool rand, size_t output_index) {
     ec_scalar temp_hash;
     ec_point rA;
     
-    random_scalar(addr->r);                     //random r
-    sc_mul(rA, addr->r, A);
-    hash_to_scalar(rA,32,temp_hash);            //H(rA)
+    if (rand) {
+        random_scalar(addr->r);                     //random r
+    }
+    scalarMult8(rA, addr->r, A);      
+    derivation_to_scalar(temp_hash,rA,output_index);       //H(rA || n) 
     addKeys_multBase(addr->pub, temp_hash, B);  //P = H(rA)G + B
     scalarMultBase(addr->R, addr->r);           //R = rG
 }
@@ -28,12 +46,12 @@ void generateStealth(ec_point A, ec_scalar B, stealth_address* addr) {
  * 
  * 1. Calculate if the output of H(aR)G + B is equal to pub
  */
-bool isStealthMine(ec_point pub, ec_point R, ec_scalar a, ec_point B) {
+bool isStealthMine(public_key pub, public_key R, secret_key a, public_key B, size_t output_index) {
     ec_scalar temp_hash;
     ec_point aR, P;
 
-    sc_mul(aR, a, R);                       //a*R
-    hash_to_scalar(aR, 32, temp_hash);      //H(aR)
+    scalarMult8(aR,a,R);                    //a*R
+    derivation_to_scalar(temp_hash,aR,output_index);       //H(rA || n) 
     addKeys_multBase(P, temp_hash, B);      //P' = H(aR)G + B
     return isByteArraysEqual(P, pub, 32);   //P ?= P'
 }
@@ -47,11 +65,12 @@ bool isStealthMine(ec_point pub, ec_point R, ec_scalar a, ec_point B) {
  * 
  * ASSUMES CALLER HAS ALREADY CHECKED IF TX BELONGS TO (a,b)
  */
-void getStealthKey(ec_point priv, ec_point R, ec_scalar a, ec_scalar b) {
+void getStealthKey(secret_key priv, public_key R, secret_key a, secret_key b, size_t output_index) {
     ec_scalar temp_hash;
     ec_point aR;
 
-    sc_mul(aR, a, R);   //Perhaps this should be stored since it is called in 2 functions
-    hash_to_scalar(aR, 32, temp_hash);
-    addKeys(priv, temp_hash, b);    //x = H(aR) + b
+    scalarMult8(aR,a,R);                    //a*R
+    derivation_to_scalar(temp_hash,aR,output_index);   //H(rA || n)
+    //don't use add_keys since we are just adding scalars, not points
+    sc_add(priv,temp_hash,b);               //x = H(rA ||n) + b
 }
