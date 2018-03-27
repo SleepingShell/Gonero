@@ -33,7 +33,7 @@ void hexStrToBytes(char* s, unsigned char* dest, int n) {
 
 //Courtesy of The Monero project and The Cryptonote developers
 //https://cryptonote.org/cns/cns003.txt
-size_t write_varint(char** dest, size_t i) {
+size_t write_varint(char* dest, size_t i) {
     /* Make sure that there is one after this */
     size_t size = 0;    //Number of bytes the varint takes
     while (i >= 0x80) {

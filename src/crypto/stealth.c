@@ -22,11 +22,13 @@ void derivation_to_scalar(ec_scalar out, ec_point key, size_t output_index) {
  *  if rand is true, then we are not passing the r to the function
  *  if rand is false, we are using the r value already in addr->r
  * 
+ *  sub is true if we are sending to a subaddress
+ * 
  *  1. Choose a random r in [1, l - 1]
  *  2. Compute the one time public key: P = H(rA)G + B
  *  3. Calculate R = rG, which the receiver uses to recover the corresponding private keys
  */ 
-void generateStealth(public_key A, public_key B, stealth_address* addr, bool rand, size_t output_index) {
+void generate_stealth(public_key A, public_key B, stealth_address* addr, bool rand, size_t output_index, bool sub) {
     ec_scalar temp_hash;
     ec_point rA;
     
@@ -36,7 +38,11 @@ void generateStealth(public_key A, public_key B, stealth_address* addr, bool ran
     scalarMult8(rA, addr->r, A);      
     derivation_to_scalar(temp_hash,rA,output_index);       //H(rA || n) 
     addKeys_multBase(addr->pub, temp_hash, B);  //P = H(rA)G + B
-    scalarMultBase(addr->R, addr->r);           //R = rG
+    if (sub) {
+        scalarMult(addr->R,addr->r,B);              //R = rB (sD in MRL)
+    } else {
+        scalarMultBase(addr->R, addr->r);           //R = rG
+    }
 }
 
 /* Determine if the public address is owned
@@ -44,16 +50,24 @@ void generateStealth(public_key A, public_key B, stealth_address* addr, bool ran
  *  R - tx public key
  * (a,B)   Key pair used to determine ownership
  * 
- * 1. Calculate if the output of H(aR)G + B is equal to pub
+ *  Calculate if the output of H(aR)G + B is equal to pub, if so return true and D is all 0
+ *  If not, then set D = pub - H(aR)G and return false
  */
-bool isStealthMine(public_key pub, public_key R, secret_key a, public_key B, size_t output_index) {
+bool isStealthMine(public_key D, public_key pub, public_key R, secret_key a, public_key B, size_t output_index) {
     ec_scalar temp_hash;
     ec_point aR, P;
 
     scalarMult8(aR,a,R);                    //a*R
-    derivation_to_scalar(temp_hash,aR,output_index);       //H(rA || n) 
+    derivation_to_scalar(temp_hash,aR,output_index);       //H(aR || n) 
     addKeys_multBase(P, temp_hash, B);      //P' = H(aR)G + B
-    return isByteArraysEqual(P, pub, 32);   //P ?= P'
+    if (isByteArraysEqual(P, pub, 32)) {   //P ?= P'
+        if (D != NULL) {
+            memset(D,  0x00, 32);
+        }
+        return true;
+    }
+    subKeys_multBase(D, temp_hash, pub);    //D = P - H(aR)G
+    return false;
 }
 
 /* Get the one-time private key from a stealth address

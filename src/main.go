@@ -20,7 +20,7 @@ func main() {
 	fmt.Printf("sk view: %x\n", keys.skView)
 	fmt.Printf("pk view: %x\n", keys.pkView)
 	fmt.Printf("address: %s\n", keys.address)
-	fmt.Printf("%s\n", SecretToMnemonic(keys.skSpend))
+	//fmt.Printf("%s\n", SecretToMnemonic(keys.skSpend))
 
 	stealthTest()
 	spend, view, err := DecodeAddress(keys.address)
@@ -28,4 +28,6 @@ func main() {
 		log.Fatal(err.Error())
 	}
 	fmt.Printf("spend: %x\nview: %x\n", spend, view)
+
+	subaddressTest()
 }

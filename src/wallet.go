@@ -5,6 +5,7 @@ package main
 #include "./crypto/keys.h"
 #include "./crypto/hash/hash.h"
 #include "./crypto/stealth.h"
+#include "./crypto/subaddress.h"
 */
 import "C"
 import (
@@ -24,23 +25,42 @@ import (
 )
 
 const numWords uint32 = 1626
+const moneroMainnetPreix = 0x12     //18
+const moneroSubaddressPrefix = 0x2A //42
 
 //KeyRing holds all required information for the base key pair of an account
 type KeyRing struct {
-	skSpend Key
-	skView  Key
-	pkSpend Key
-	pkView  Key
+	skSpend Key //b
+	skView  Key //a
+	pkSpend Key //B
+	pkView  Key //A
 	address string
 }
 
+//GenKeys generates new private spend and view keys and their corresponding public keys,
+//generates the public address and returns a KeyRing
+func GenKeys() KeyRing {
+	var keys KeyRing
+	C.generate_keys(GoKeyToUcharPtr(&keys.pkSpend), GoKeyToUcharPtr(&keys.skSpend))
+	C.hash_to_scalar(unsafe.Pointer(&keys.skSpend), 32, GoKeyToUcharPtr(&keys.skView))
+	C.secret_to_public(GoKeyToUcharPtr(&keys.pkView), GoKeyToUcharPtr(&keys.skView))
+
+	keys.address = CreateAddress(keys.pkSpend, keys.pkView, false)
+	return keys
+}
+
 //CreateAddress creates the public address of the given public spend and view keys
-//0x12 network byte
-func CreateAddress(spend, view Key) string {
+//subaddr is true if we are encoding a subaddress, false otherwise
+func CreateAddress(spend, view Key, subaddr bool) string {
 	var toHash [65]byte
 	var addressBytes [69]byte
-	toHash[0] = 0x12
-	addressBytes[0] = 0x12
+	if subaddr {
+		toHash[0] = moneroSubaddressPrefix
+		addressBytes[0] = moneroSubaddressPrefix
+	} else {
+		toHash[0] = moneroMainnetPreix
+		addressBytes[0] = moneroMainnetPreix
+	}
 	for i := 0; i < 32; i++ {
 		toHash[i+1] = spend[i]
 		toHash[i+1+32] = view[i]
@@ -82,7 +102,7 @@ func DecodeAddress(address string) (spendKey, viewKey Key, err error) {
 	temp := base58.Decode(address[88:95])
 	copy(data[64:69], temp)
 
-	if data[0] != 0x12 {
+	if data[0] != moneroMainnetPreix && data[0] != moneroSubaddressPrefix {
 		return spendKey, viewKey, errors.New("Invalid network byte")
 	}
 
@@ -97,18 +117,6 @@ func DecodeAddress(address string) (spendKey, viewKey Key, err error) {
 	copy(viewKey[:], data[33:65])
 
 	return
-}
-
-//GenKeys generates new private spend and view keys and their corresponding public keys,
-//generates the public address and returns a KeyRing
-func GenKeys() KeyRing {
-	var keys KeyRing
-	C.generate_keys(GoKeyToUcharPtr(&keys.pkSpend), GoKeyToUcharPtr(&keys.skSpend))
-	C.hash_to_scalar(unsafe.Pointer(&keys.skSpend), 32, GoKeyToUcharPtr(&keys.skView))
-	C.secret_to_public(GoKeyToUcharPtr(&keys.pkView), GoKeyToUcharPtr(&keys.skView))
-
-	keys.address = CreateAddress(keys.pkSpend, keys.pkView)
-	return keys
 }
 
 func getChecksumIndex(words [24]string) uint32 {
@@ -197,12 +205,12 @@ func stealthTest() {
 	var stealth C.stealth_address
 	copy(CscalarToByteSlice(&stealth.r)[:], r[:])
 	fmt.Printf("r: %x\n", stealth.r)
-	C.generateStealth(GoKeyToUcharPtr(&A), GoKeyToUcharPtr(&B), &stealth, false, 0)
+	C.generate_stealth(GoKeyToUcharPtr(&A), GoKeyToUcharPtr(&B), &stealth, false, 0, false)
 	fmt.Printf("R: %x\n", stealth.R)
 	fmt.Printf("pub: %x\n", stealth.pub)
 	fmt.Printf("b: %x\n", b)
 
-	res := C.isStealthMine(CpointToCuchar(&stealth.pub), CpointToCuchar(&stealth.R), GoKeyToUcharPtr(&a), GoKeyToUcharPtr(&B), 0)
+	res := C.isStealthMine(nil, CpointToCuchar(&stealth.pub), CpointToCuchar(&stealth.R), GoKeyToUcharPtr(&a), GoKeyToUcharPtr(&B), 0)
 	fmt.Println(res)
 
 	if res {
@@ -210,4 +218,33 @@ func stealthTest() {
 		C.getStealthKey(GoKeyToUcharPtr(&priv), CpointToCuchar(&stealth.R), GoKeyToUcharPtr(&a), GoKeyToUcharPtr(&b), 0)
 		fmt.Printf("x: %x\n", priv)
 	}
+}
+
+func subaddressTest() {
+	fmt.Println("===Subaddress test===")
+	ring := GenKeys()
+	var C, D, Dprime Key
+	index := C.generate_subaddress_index(1, 0)
+	C.generate_subaddress(GoKeyToUcharPtr(&D), GoKeyToUcharPtr(&C), GoKeyToUcharPtr(&ring.pkSpend), GoKeyToUcharPtr(&ring.skView), index)
+	addr := CreateAddress(D, C, true)
+	fmt.Println(addr)
+	fmt.Printf("C: %x\nD: %x\n", C, D)
+
+	var stealth C.stealth_address
+	C.generate_stealth(GoKeyToUcharPtr(&C), GoKeyToUcharPtr(&D), &stealth, true, 0, true)
+	fmt.Printf("R: %x\n", stealth.R)
+	fmt.Printf("pub: %x\n", stealth.pub)
+
+	res := C.isStealthMine(GoKeyToUcharPtr(&Dprime), CpointToCuchar(&stealth.pub), CpointToCuchar(&stealth.R), GoKeyToUcharPtr(&ring.skView), GoKeyToUcharPtr(&ring.pkSpend), 0)
+	fmt.Println(res)
+	fmt.Printf("Dprime: %x\n", Dprime)
+
+	var priv, pre Key
+	C.getStealthKey(GoKeyToUcharPtr(&pre), CpointToCuchar(&stealth.R), GoKeyToUcharPtr(&ring.skView), GoKeyToUcharPtr(&ring.skSpend), 0)
+	C.subaddress_get_stealth_secret(GoKeyToUcharPtr(&priv), GoKeyToUcharPtr(&pre), GoKeyToUcharPtr(&ring.skView), index)
+	fmt.Printf("priv: %x\n", priv)
+
+	var pub Key
+	C.secret_to_public(GoKeyToUcharPtr(&pub), GoKeyToUcharPtr(&priv))
+	fmt.Printf("Pub (=pub?): %x\n", pub)
 }

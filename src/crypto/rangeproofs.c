@@ -132,6 +132,7 @@ void proveRange(key C, key mask, uint64_t amount, range_proof* proof) {
             addKeys_multBase(Ci[i],ai[i],H2[i]);
         }
 
+        //!!!Need to change this to Key sub/add (these are points)
         sc_sub(CiH[i],Ci[i],H2[i]);                 //CiH = C_i - 2^i * H
         sc_add(mask,mask,ai[i]);                    //Add this sub-mask to mask
         sc_add(C, C, Ci[i]);                        //Add c_i to total C
