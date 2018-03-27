@@ -19,6 +19,8 @@ add_library(
     ../src/crypto/signatures.c
     ../src/crypto/stealth.h
     ../src/crypto/stealth.c
+    ../src/crypto/subaddress.h
+    ../src/crypto/subaddress.c
     ../src/crypto/crypto_math/crypto-ops-data.c
     ../src/crypto/crypto_math/crypto-ops.h
     ../src/crypto/crypto_math/crypto-ops.c
