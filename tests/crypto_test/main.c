@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <err.h>
+#include <stdint.h>
 
 #include "../../src/crypto/keys.h"
 #include "../../src/crypto/hash/hash.h"
@@ -127,6 +128,18 @@ void test_mlsag() {
     generateMLSAG(msg,&pubM,&imageV,&secV,index,&sig);
     printHex(sig.c1, 32);
     bool res = verifyMLSAG(msg, &pubM, &sig);
+    printf("Verification result: %s\n", res ? "true" : "false");
+}
+
+void test_rangeproof() {
+    ec_scalar C, mask;
+    uint64_t amount = 5;
+    range_proof proof;
+    proveRange(C,mask,amount,&proof);
+    printHex(C, 32);
+    printHex(mask, 32);
+
+    bool res = verifyRange(C, &proof);
     printf("Verification result: %s\n", res ? "true" : "false");
 }
 
@@ -263,21 +276,13 @@ int main() {
     }
 
     printf("********Finished tests********\n");
-    secret_key sk;
-    public_key pk;
-    ec_scalar out;
-    hexStrToBytes("570c22f3bea11fda89178a16fa3f6e4f04cd1db31d1b482325fc4571cffcc00b", sk, 64);
-    hash_to_scalar(sk, 32, out);
-    printHex(sk, 32);
-    printHex(out, 32);
-    secret_to_public(pk,sk);
-    printHex(pk, 32);
 
     free(buffer);
     fclose(fd);
 
     //test_ring_sig();
     //test_mlsag();
+    test_rangeproof();
 
     return 0;
 }

@@ -9,6 +9,9 @@ typedef struct commitPair {
     key mask;
 } commitPair;
 
+/* Conver the val to the binary representation in amountb
+ *  Courtesy of The Cryptonote developers/The Monero Project
+ */ 
 void d2b(bits amountb, uint64_t val) {
     int i = 0;
     while (val != 0) {
@@ -132,10 +135,9 @@ void proveRange(key C, key mask, uint64_t amount, range_proof* proof) {
             addKeys_multBase(Ci[i],ai[i],H2[i]);
         }
 
-        //!!!Need to change this to Key sub/add (these are points)
-        sc_sub(CiH[i],Ci[i],H2[i]);                 //CiH = C_i - 2^i * H
+        subKeys(CiH[i], Ci[i], H2[i]);              //CiH = C_i - 2^i * H
         sc_add(mask,mask,ai[i]);                    //Add this sub-mask to mask
-        sc_add(C, C, Ci[i]);                        //Add c_i to total C
+        addKeys(C, C, Ci[i]);                       //Add c_i to total C
     }
 
     generateBorromean(ai, Ci, CiH, b, &proof->sig);
@@ -151,12 +153,12 @@ bool verifyRange(key C, range_proof* proof) {
     key calcC;  //Calculated C
     set_identity(calcC);
 
-    for (size_t i = 0; i < 64; i++) {
-        sc_sub(CiH[i], proof->Ci[i], H2[i]);        //CiH = C_i - 2^i * H
-        sc_add(calcC, calcC, proof->Ci[i]);         //C += c_i
+    for (size_t i = 0; i < 64; i++) {    
+        subKeys(CiH[i], proof->Ci[i], H2[i]);       //CiH = C_i - 2^i * H
+        addKeys(calcC, calcC, proof->Ci[i]);        //C += c_i
     }
 
-    if (isByteArraysEqual(calcC, C, 32)) {
+    if (!isByteArraysEqual(calcC, C, 32)) {
         return false;
     }
 

@@ -1,6 +1,7 @@
 #ifndef RANGEPROOFS_H
 #define RANGEPROOFS_H
 #include <stddef.h>
+#include <stdint.h>
 
 #include "keys.h"
 
@@ -18,6 +19,30 @@ typedef struct range_proof {
     key64 Ci;
     borromean_sig sig;
 } range_proof;
+
+/* Generate a Borromean ring signature
+ *  x:          Array of scalar masks (a_i) such that C_i = a_i*G + 2^i H * (b[i])
+ *  P1:         Array of c_i values
+ *  P2:         Array of C_i*H values
+ *  indicies:   Binary representation of the amount being proven (0's and 1's)
+ */ 
+void generateBorromean(key64 x, key64 P1, key64 P2, bits indicies, borromean_sig* sig);
+
+/* Verify a Borromean ring signature
+ *  P1:         Array of c_i values
+ *  P2:         Array of C_i*H values
+ *  sig:        Borromean signature that contains e0, s0's and s1's
+ */
+bool verifyBorromean(key64 P1, key64 P2, borromean_sig* sig);
+
+/* Generate a range proof, that amount is within [0, 2^64)
+ *  C:      All c_i values sum to this
+ *  mask:   Hides the value that C is referencing
+ *  amount: Value that we are proving
+ *  proof:  Pre-allocated range proof
+ */ 
+void proveRange(key C, key mask, uint64_t amount, range_proof* proof);
+bool verifyRange(key C, range_proof* proof);
 
 
 /****Courtesy of The Monero Project****/

@@ -68,6 +68,9 @@ void scalarMultBase(ec_scalar out, ec_scalar a);
 //out = A + B
 void addKeys(ec_point out, ec_point A, ec_point B);
 
+//out = A - B
+void subKeys(ec_point out, ec_point A, ec_point B);
+
 //out = aG + B
 void addKeys_multBase(ec_point out, ec_scalar a, ec_point B);
 
