@@ -42,8 +42,18 @@ bool verifyBorromean(key64 P1, key64 P2, borromean_sig* sig);
  *  proof:  Pre-allocated range proof
  */ 
 void proveRange(key C, key mask, uint64_t amount, range_proof* proof);
+
+/* Verify a range proof
+ * C: The final commitment value
+ * proof: Holds the Ci and borromean signature
+ */
 bool verifyRange(key C, range_proof* proof);
 
+//Encrypt the key/mask by adding the shared secret
+void ecdhEncode(key mask, key amount, key secret);
+
+//Decryped the key/mask by subtracting the shared secret
+void ecdhDecode(key mask, key amount, key secret);
 
 /****Courtesy of The Monero Project****/
 

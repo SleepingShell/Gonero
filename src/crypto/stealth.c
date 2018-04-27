@@ -25,10 +25,10 @@ void derivation_to_scalar(ec_scalar out, ec_point key, size_t output_index) {
  *  sub is true if we are sending to a subaddress
  * 
  *  1. Choose a random r in [1, l - 1]
- *  2. Compute the one time public key: P = H(rA)G + B
+ *  2. Compute the one time public key: P = H(rA || n)G + B
  *  3. Calculate R = rG, which the receiver uses to recover the corresponding private keys
  */ 
-void generate_stealth(public_key A, public_key B, stealth_address* addr, bool rand, size_t output_index, bool sub) {
+void generateStealth(public_key A, public_key B, stealth_address* addr, bool rand, size_t output_index, bool sub) {
     ec_scalar temp_hash;
     ec_point rA;
     

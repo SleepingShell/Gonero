@@ -22,12 +22,15 @@ func main() {
 	fmt.Printf("address: %s\n", keys.address)
 	//fmt.Printf("%s\n", SecretToMnemonic(keys.skSpend))
 
-	stealthTest()
+	//stealthTest()
 	spend, view, err := DecodeAddress(keys.address)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
 	fmt.Printf("spend: %x\nview: %x\n", spend, view)
 
-	subaddressTest()
+	//subaddressTest()
+	//serialTest()
+	TestVerRange()
+	TestRange()
 }

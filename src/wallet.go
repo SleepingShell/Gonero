@@ -97,7 +97,7 @@ func DecodeAddress(address string) (spendKey, viewKey Key, err error) {
 	var data [69]byte
 	for i := 0; i < 8; i++ {
 		temp := base58.Decode(address[i*11 : i*11+11])
-		copy(data[i*8:i*8+8], temp)
+		copy(data[i*8:(i+1)*8], temp)
 	}
 	temp := base58.Decode(address[88:95])
 	copy(data[64:69], temp)
@@ -205,7 +205,7 @@ func stealthTest() {
 	var stealth C.stealth_address
 	copy(CscalarToByteSlice(&stealth.r)[:], r[:])
 	fmt.Printf("r: %x\n", stealth.r)
-	C.generate_stealth(GoKeyToUcharPtr(&A), GoKeyToUcharPtr(&B), &stealth, false, 0, false)
+	C.generateStealth(GoKeyToUcharPtr(&A), GoKeyToUcharPtr(&B), &stealth, false, 0, false)
 	fmt.Printf("R: %x\n", stealth.R)
 	fmt.Printf("pub: %x\n", stealth.pub)
 	fmt.Printf("b: %x\n", b)
@@ -231,7 +231,7 @@ func subaddressTest() {
 	fmt.Printf("C: %x\nD: %x\n", C, D)
 
 	var stealth C.stealth_address
-	C.generate_stealth(GoKeyToUcharPtr(&C), GoKeyToUcharPtr(&D), &stealth, true, 0, true)
+	C.generateStealth(GoKeyToUcharPtr(&C), GoKeyToUcharPtr(&D), &stealth, true, 0, true)
 	fmt.Printf("R: %x\n", stealth.R)
 	fmt.Printf("pub: %x\n", stealth.pub)
 

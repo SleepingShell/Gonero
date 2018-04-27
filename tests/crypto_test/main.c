@@ -68,6 +68,7 @@ void test_ring_sig() {
 }
 
 void test_mlsag() {
+    printf("Testing mlsag...\n");
     int ring_size = 20;
     int vector_size = 10;
     int index = 5;
@@ -126,20 +127,62 @@ void test_mlsag() {
     }
 
     generateMLSAG(msg,&pubM,&imageV,&secV,index,&sig);
-    printHex(sig.c1, 32);
     bool res = verifyMLSAG(msg, &pubM, &sig);
     printf("Verification result: %s\n", res ? "true" : "false");
 }
 
+uint64_t h2d(ec_scalar t) {
+    uint64_t vali = 0;
+    int j = 0;
+    for (j = 7; j >= 0; j--) {
+        vali = (uint64_t)(vali*256*(unsigned char)t[j]);
+    }
+    return vali;
+}
+
+
 void test_rangeproof() {
+    printf("Testing rangeproof...\n");
     ec_scalar C, mask;
     uint64_t amount = 5;
     range_proof proof;
     proveRange(C,mask,amount,&proof);
-    printHex(C, 32);
-    printHex(mask, 32);
+    //printHex(C, 32);
+    //printHex(mask, 32);
 
     bool res = verifyRange(C, &proof);
+    printf("Verification result: %s\n", res ? "true" : "false");
+
+    printf("=====================\n");
+
+    int N = 64;
+    ec_scalar temp;
+    key64 xv;
+    key64 P1v;
+    key64 P2v;
+    bits indi;
+    int j = 0;
+
+    for (j = 0; j < N; j++) {
+        random_scalar(temp);
+        indi[j] = (int)(h2d(temp) % 2);
+
+        random_scalar(temp);
+        memcpy(xv[j],temp,32);
+
+        if( (int)indi[j] == 0) {
+            scalarMultBase(P1v[j], xv[j]);
+        } else {
+            addKeys_multBase(P1v[j], xv[j], H2[j]);
+        }
+        subKeys(P2v[j], P1v[j], H2[j]);
+    }
+
+    borromean_sig bsig;
+
+    generateBorromean(xv,P1v,P2v,indi,&bsig);
+    
+    res = verifyBorromean(P1v,P2v,&bsig);
     printf("Verification result: %s\n", res ? "true" : "false");
 }
 
@@ -272,6 +315,8 @@ int main() {
             if ( !isByteArraysEqual(real, expected, 32) ) {
                 printf("%d Failed\n", lineNo);
             }
+        } else if (strcmp("generate_key_derivation", cur) == 0) {
+             
         }
     }
 
@@ -281,7 +326,7 @@ int main() {
     fclose(fd);
 
     //test_ring_sig();
-    //test_mlsag();
+    test_mlsag();
     test_rangeproof();
 
     return 0;

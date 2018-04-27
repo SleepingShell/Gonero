@@ -11,10 +11,13 @@ import "unsafe"
 type Key [32]byte
 
 //Scalar represents an elliptic curve scalar (32 bytes)
-type Scalar [32]byte
+type Scalar = Key
 
 //Point represents an elliptic curve point (32 bytes)
-type Point [32]byte
+type Point = Key
+
+//Key64 represents an array of 64 key values
+type Key64 [64]Key
 
 //CpublicKeyTogoKey returns a Key pointer that points to the
 //C.public_key address in src.
@@ -56,6 +59,12 @@ func GoKeyToCPublicKey(src *Key) *C.public_key {
 //Key address in src.
 func GoKeyToCSecretKey(src *Key) *C.secret_key {
 	return (*C.secret_key)(unsafe.Pointer(src))
+}
+
+//GoKeyToCScalar returns a C.ec_scalar pointer that points to the
+//Key address in src.
+func GoKeyToCScalar(src *Key) *C.ec_scalar {
+	return (*C.ec_scalar)(unsafe.Pointer(src))
 }
 
 //GoKeyToUcharPtr returns a C.uchar pointer (array of char) to the

@@ -1,0 +1,5 @@
+#!/bin/bash
+
+cd src
+go run main.go wallet.go transaction.go typeBridge.go serialization.go
+

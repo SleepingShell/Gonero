@@ -5,6 +5,9 @@
 
 /* Calculate the L and R values and put them in their byte arrays
  * Used in LWW and MLSAG
+ * 
+ *  L = sG + cP
+ *  R = sH(P) + cI
  */
 void calc_LR(char* L_curBytes, char* R_curBytes, ec_scalar c_prev, ec_scalar s, public_key pub, ge_dsmp image_pre) {
     ge_p3 pub_cur;
@@ -24,6 +27,8 @@ void calc_LR(char* L_curBytes, char* R_curBytes, ec_scalar c_prev, ec_scalar s, 
 }
 
 /* Calculate LR values for secret index
+ *  L = sG
+ *  R = sH(pub)
  */
 void calc_LR_secret(char* L_curBytes, char* R_curBytes, ec_scalar s, public_key pub) {
     ge_p3 pubhash_cur;
@@ -143,6 +148,8 @@ bool verifyllw(const char* msg, size_t msg_size, vector_public_key* pubs, ring_s
 /*
  * Calculates the hash of the message given L and R MLSAG vectors
  * L and R are vectors of size m
+ * 
+ * c = H(L_1, R_1, . . ., L_m, R_m)
  */
 void calc_c_hashV(char* c, char** L, char** R, int m, char* toHash, int prefix_size) {
     //int m = L.n;
@@ -159,7 +166,6 @@ void calc_c_hashV(char* c, char** L, char** R, int m, char* toHash, int prefix_s
  * Add checks that all vector sizes are the same
  */
 void generateMLSAG(const char* prefix, const matrix_public_key* pubM, const vector_key_image* imageV, const vector_secret_key* secV, size_t index, mlsag_sig* sig) {
-    printf("Generating MLSAG...\n");
     int vector_size = pubM->vector_size;   //m in MRL-0005
     int ring_size = pubM->ring_size;  //n in MRL-0005
     public_key** pub_vectors = pubM->pub_vectors;
@@ -193,16 +199,16 @@ void generateMLSAG(const char* prefix, const matrix_public_key* pubM, const vect
     public_key* cur_pub_vector = pub_vectors[ring_i];
     for (size_t j = 0; j < vector_size; j++) {
         random_scalar(s[ring_i][j]);
+        
         calc_LR_secret(L_curBytes[j], R_curBytes[j], s[ring_i][j], cur_pub_vector[j]);
     }
+    //c = H(L_1, R_1, . . ., L_m, R_m)
     calc_c_hashV(c, L_curBytes, R_curBytes, vector_size, toHash, 32);
 
     ring_i = (ring_i + 1) % ring_size;
     if (ring_i == 0) {
             memcpy(&sig->c1, &c, 32);
     }
-    printf("c_%d: ", ring_i);
-    printHex(c, 32);
 
     while (ring_i != index) {
         cur_pub_vector = pub_vectors[ring_i];
@@ -217,11 +223,10 @@ void generateMLSAG(const char* prefix, const matrix_public_key* pubM, const vect
         if (ring_i == 0) {
             memcpy(&sig->c1, &c, 32);
         }
-        printf("c_%d: ", ring_i);
-        printHex(c, 32);
     }
 
     for (size_t j = 0; j < vector_size; j++) {
+        //s_j = s_j(old) + c*x_j % l
         sc_mulsub(s[index][j], c, secV->sec_keys[j],s[index][j]);
 
     }
@@ -230,8 +235,6 @@ void generateMLSAG(const char* prefix, const matrix_public_key* pubM, const vect
 }
 
 bool verifyMLSAG(const char* prefix, const matrix_public_key* pubM, mlsag_sig* sig) {
-    printf("Verifying MLSAG...\n");
-
     int vector_size = sig->m;   //m in MRL-0005
     int ring_size = sig->n;  //n in MRL-0005
     public_key** pub_vectors = pubM->pub_vectors;
@@ -267,8 +270,6 @@ bool verifyMLSAG(const char* prefix, const matrix_public_key* pubM, mlsag_sig* s
     int ring_i = 0;
     public_key* cur_pub_vector;
 
-    printf("c_%d: ", ring_i);
-    printHex(c, 32);
     while (ring_i < ring_size) {
         cur_pub_vector = pub_vectors[ring_i];
         for (size_t j = 0; j < vector_size; j++) {
@@ -277,9 +278,7 @@ bool verifyMLSAG(const char* prefix, const matrix_public_key* pubM, mlsag_sig* s
 
         calc_c_hashV(c, L_curBytes, R_curBytes, vector_size, toHash, 32);
 
-        ring_i = (ring_i + 1);
-        printf("c_%d: ", ring_i);
-        printHex(c, 32);        
+        ring_i = (ring_i + 1);       
     }
     return isByteArraysEqual(sig->c1, c, 32);
 }

@@ -161,7 +161,33 @@ bool verifyRange(key C, range_proof* proof) {
     if (!isByteArraysEqual(calcC, C, 32)) {
         return false;
     }
-
+    
     //If the C's add up, check the proof
     return verifyBorromean(proof->Ci, CiH, &proof->sig);
+}
+
+/* Encode the mask and amount:
+ *  mask = mask + H(secret)
+ *  amount = amount + H(H(secret))
+ * 
+ *  secret is rB (the random r and the public spent key)
+ */
+void ecdhEncode(key mask, key amount, key secret) {
+    ec_scalar maskSec, amtSec;
+    hash_to_scalar(secret,32,maskSec);
+    hash_to_scalar(maskSec,32,amtSec);
+
+    sc_add(mask,mask,maskSec);
+    sc_add(amount,amount,amtSec);
+}
+
+/* Decode the mask and amount
+ */
+void ecdhDecode(key mask, key amount, key secret) {
+    ec_scalar maskSec, amtSec;
+    hash_to_scalar(secret,32,maskSec);
+    hash_to_scalar(maskSec,32,amtSec);
+
+    sc_sub(mask,mask,maskSec);
+    sc_sub(amount,amount,amtSec);
 }

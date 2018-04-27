@@ -45,7 +45,7 @@ typedef struct vector_key_image {
 
 /***Functions***
  *  Callers are responsible for allocation and freeing of memory 
- */
+*/
 
 /*Generate a new secret and public key pair, calls random_scalar
  */

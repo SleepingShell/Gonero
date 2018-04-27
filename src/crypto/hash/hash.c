@@ -1,8 +1,10 @@
 #include "hash.h"
 
-//#include "keccak.h"
 #include "../random.h"
 #include "../crypto_math/crypto-ops.h"
+
+//sc_reduce: Takes a 64-byte integer and outputs the lowest 32 bytes modulo the prime q
+//sc_reduce32: Takes a 32-byte integer and outputs the integer modulo q
 
 void random_scalar(ec_scalar dest) {
     unsigned char temp[64];

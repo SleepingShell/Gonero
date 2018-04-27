@@ -17,6 +17,8 @@ add_library(
     ../src/crypto/hash/keccak.c
     ../src/crypto/signatures.h
     ../src/crypto/signatures.c
+    ../src/crypto/rangeproofs.h
+    ../src/crypto/rangeproofs.c
     ../src/crypto/stealth.h
     ../src/crypto/stealth.c
     ../src/crypto/subaddress.h
